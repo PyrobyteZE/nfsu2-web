@@ -1,5 +1,5 @@
 /* paints.c -- this server's paint colours, in the Graphics shops' grids of 60 swatches (Gloss, Metallic) and the grids of
- * the rims, engine hoses, muffler tips and brake calipers, which take no more than 60: a paint is a part (kind 0x30) whose colour is its RED, GREEN and BLUE attributes and
+ * the rims, engine hoses, muffler tips, brake calipers and vinyls' colours (kind 0x31, without a material), which take no more than 60: a paint is a part (kind 0x30) whose colour is its RED, GREEN and BLUE attributes and
  * whose shine is a light material the game has (the attribute 0x6BA02C05, by name hash).  Our colours go on the paints
  * nearest another of the game's (tools: distance in Lab), so a part's key stays the game's and a profile needs nothing
  * new.  The last four lists' 20 take plain slots only (the rest are pearl paints, some with a second colour, or chrome);
@@ -20,7 +20,10 @@ void gheap_free(int heap, uint32_t p);
 #define ATTR_MATERIAL 0x6ba02c05u
 #define N_COLOUR      30
 #define N_RIM         20
-#define N_ALL         (N_COLOUR + N_COLOUR + 4 * N_RIM)
+#define N_PAINTS      (N_COLOUR + N_COLOUR + 4 * N_RIM)  /* those with a material */
+#define N_ALL         (N_PAINTS + N_COLOUR)          /* and the vinyls' colours, which have none */
+#define KIND_VINYL_COLOUR 0x31u
+#define ATTR_N_VINYL  5
 
 static const uint32_t SUB[7] = { 0x34603u, 0x34606u, 0x3460cu, 0x34605u, 0x3460au, 0x3460bu, 0x34604u };
 enum { S_HDR, S_STR, S_LIST, S_ATTR, S_MODEL, S_OWNER, S_PART };
@@ -101,6 +104,14 @@ static const char *const k_caliper[N_RIM] = {
     "CALIPERS_L2_COLOR01", "CALIPERS_L2_COLOR15", "CALIPERS_L2_COLOR16", "CALIPERS_L2_COLOR03",
     "CALIPERS_L2_COLOR17", "CALIPERS_L1_COLOR08", "CALIPERS_L1_COLOR10", "CALIPERS_L2_COLOR04",
 };
+static const char *const k_vinyl[N_COLOUR] = {
+    "VINYL_L3_COLOR05", "VINYL_L2_COLOR06", "VINYL_L2_COLOR05", "VINYL_L1_COLOR10", "VINYL_L1_COLOR07",
+    "VINYL_L2_COLOR12", "VINYL_L1_COLOR09", "VINYL_L1_COLOR01", "VINYL_L2_COLOR14", "VINYL_L3_COLOR07",
+    "VINYL_L2_COLOR11", "VINYL_L2_COLOR08", "VINYL_L3_COLOR27", "VINYL_L3_COLOR02", "VINYL_L2_COLOR07",
+    "VINYL_L2_COLOR19", "VINYL_L1_COLOR06", "VINYL_L2_COLOR09", "VINYL_L2_COLOR10", "VINYL_L2_COLOR03",
+    "VINYL_L3_COLOR06", "VINYL_L3_COLOR14", "VINYL_L2_COLOR04", "VINYL_L2_COLOR13", "VINYL_L2_COLOR18",
+    "VINYL_L2_COLOR17", "VINYL_L2_COLOR15", "VINYL_L3_COLOR21", "VINYL_L3_COLOR28", "VINYL_L3_COLOR09",
+};
 /* the colours each list's 20 plain slots get: the purples, the pinks, and a few of the rest */
 static const uint8_t k_rim_colour[N_RIM] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20, 28 };
 
@@ -115,6 +126,7 @@ static uint32_t bhash(const char *s){
 static void slot(int i, const char **name, int *col, const char **mat){
     if (i < N_COLOUR){ *name = k_gloss[i]; *col = i; *mat = k_colour[i].gloss; }
     else if (i < 2 * N_COLOUR){ *name = k_metal[i - N_COLOUR]; *col = i - N_COLOUR; *mat = k_colour[i - N_COLOUR].metal; }
+    else if (i >= N_PAINTS){ *name = k_vinyl[i - N_PAINTS]; *col = i - N_PAINTS; *mat = 0; }
     else {
         int at = i - 2 * N_COLOUR, r = at % N_RIM;
         static const char *const *const lists[4] = { k_rim, k_hose, k_muffler, k_caliper };
@@ -142,32 +154,34 @@ uint32_t paints_grow(uint32_t chunk){
         fprintf(stderr, "[paints] the car part database's counts are not its tables': no new colours\n"); return 0;
     }
     /* each slot's part, and that it is a plain paint */
-    uint32_t hred = bhash("RED"), hgrn = bhash("GREEN"), hblu = bhash("BLUE"), part[N_ALL];
+    uint32_t hred = bhash("RED"), hgrn = bhash("GREEN"), hblu = bhash("BLUE"), part[N_ALL], g_lst = 0, g_atr = 0;
     for (int i = 0; i < N_ALL; i++){
         const char *nm, *mat; int col;
         slot(i, &nm, &col, &mat);
-        uint32_t key = bhash(nm), p = 0;
-        for (uint32_t j = 0; j < nparts && !p; j++){ uint32_t q = prt + j * PART_SZ; if (MR32(q) == key && MR8(q + 4u) == KIND_PAINT) p = q; }
+        uint32_t key = bhash(nm), p = 0, kind = mat ? KIND_PAINT : KIND_VINYL_COLOUR;
+        int na = mat ? ATTR_N : ATTR_N_VINYL;
+        for (uint32_t j = 0; j < nparts && !p; j++){ uint32_t q = prt + j * PART_SZ; if (MR32(q) == key && MR8(q + 4u) == kind) p = q; }
         if (!p){ fprintf(stderr, "[paints] the car part database has no %s: no new colours\n", nm); return 0; }
         uint32_t li = MR16(p + 0xau);
-        if (li == 0xffffu || (uint64_t)li * 2u + 2u + 2u * ATTR_N > sub[S_LIST][1] || (int16_t)MR16(lst + li * 2u) != ATTR_N){
+        if (li == 0xffffu || (uint64_t)li * 2u + 2u + 2u * (uint32_t)na > sub[S_LIST][1] || (int16_t)MR16(lst + li * 2u) != na){
             fprintf(stderr, "[paints] %s is not a plain paint: no new colours\n", nm); return 0;
         }
         int seen = 0;
-        for (int j = 0; j < ATTR_N; j++){
+        for (int j = 0; j < na; j++){
             int ix = (int16_t)MR16(lst + li * 2u + 2u + 2u * (uint32_t)j);
             if (ix < 0 || (uint32_t)ix >= nattr){ fprintf(stderr, "[paints] %s's attributes are out of range: no new colours\n", nm); return 0; }
             uint32_t h = MR32(atr + 8u * (uint32_t)ix);
             seen += h == hred || h == hgrn || h == hblu || h == ATTR_MATERIAL;
         }
-        if (seen != 4){ fprintf(stderr, "[paints] %s's attributes are not a paint's: no new colours\n", nm); return 0; }
+        if (seen != (mat ? 4 : 3)){ fprintf(stderr, "[paints] %s's attributes are not a paint's: no new colours\n", nm); return 0; }
         part[i] = p;
+        g_lst += 2u + 2u * (uint32_t)na; g_atr += (uint32_t)na * 8u;
     }
     /* what the tables gain: attribute rows and lists (kept to 8 bytes) */
-    uint32_t g_lst = ((uint32_t)N_ALL * (2u + 2u * ATTR_N) + 7u) & ~7u, g_atr = (uint32_t)N_ALL * ATTR_N * 8u;
+    g_lst = (g_lst + 7u) & ~7u;
     uint32_t gain[7] = { 0, 0, g_lst, g_atr, 0, 0, 0 }, nsize = size;
     for (int k = 0; k < 7; k++) nsize += gain[k];
-    if ((sub[S_LIST][1] + g_lst) / 2u > 0xffffu || nattr + N_ALL * ATTR_N > 0x7fffu){
+    if ((sub[S_LIST][1] + g_lst) / 2u > 0xffffu || nattr + g_atr / 8u > 0x7fffu){
         fprintf(stderr, "[paints] the car part database's tables are too full: no new colours\n"); return 0;
     }
     uint32_t out = gheap_alloc(1, nsize + 8u + 16u, 1);
@@ -190,21 +204,22 @@ uint32_t paints_grow(uint32_t chunk){
         const char *nm, *mat; int col;
         slot(i, &nm, &col, &mat);
         uint32_t old = MR16(part[i] + 0xau), li = (l_at - place[S_LIST]) / 2u;
-        MR16(l_at) = ATTR_N;
-        for (int j = 0; j < ATTR_N; j++){
+        int na = mat ? ATTR_N : ATTR_N_VINYL;
+        MR16(l_at) = (uint16_t)na;
+        for (int j = 0; j < na; j++){
             uint32_t ix = (uint16_t)MR16(lst + old * 2u + 2u + 2u * (uint32_t)j), h = MR32(atr + 8u * ix), v = MR32(atr + 8u * ix + 4u);
             if (h == hred) v = k_colour[col].r;
             else if (h == hgrn) v = k_colour[col].g;
             else if (h == hblu) v = k_colour[col].b;
-            else if (h == ATTR_MATERIAL) v = bhash(mat);
+            else if (h == ATTR_MATERIAL && mat) v = bhash(mat);
             MR32(a_at) = h; MR32(a_at + 4u) = v; a_at += 8u;
             MR16(l_at + 2u + 2u * (uint32_t)j) = (uint16_t)ai++;
         }
-        l_at += 2u + 2u * ATTR_N;
+        l_at += 2u + 2u * (uint32_t)na;
         MR16(place[S_PART] + (part[i] - prt) + 0xau) = (uint16_t)li;
     }
     MR32(place[S_HDR] + 0x20u) = ai;
-    fprintf(stderr, "[paints] the car part database: %d colours (%d Gloss, %d Metallic, %d each rims, hoses, mufflers, calipers) on the game's paints\n", N_ALL, N_COLOUR, N_COLOUR, N_RIM);
+    fprintf(stderr, "[paints] the car part database: %d colours (%d Gloss, %d Metallic, %d each rims, hoses, mufflers, calipers, %d vinyl) on the game's paints\n", N_ALL, N_COLOUR, N_COLOUR, N_RIM, N_COLOUR);
     return out;
 }
 void paints_free(void){ if (g_raw){ gheap_free(1, g_raw); g_raw = 0; } }
