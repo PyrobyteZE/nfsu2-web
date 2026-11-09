@@ -197,6 +197,8 @@ export const KEYS: readonly KeyDef[] = [
   // (runtime/catchup.c).  Not in bundle.m's table: there a lower-case key, so it reaches the runtime as NFSU2_CATCHUP
   // all the same
   { key: 'catchup', env: 'NFSU2_CATCHUP', kind: 'enum', vals: 'original|noboost|off', scope: 'web' },
+  // this server's Nitrous setting (runtime/nosmod.c)
+  { key: 'nos_mode', env: 'NFSU2_NOS_MODE', kind: 'enum', vals: 'off|unlimited|faster|both', scope: 'web' },
   // The rims are out for now (mods.ts): this key comes back with its lines in TEMPLATE, after catchup's:
   //   # New rim brands in the rim shop: Blitz.  Everyone's game has their rims,
   //   # so a friend's car with them looks the same either way, and rims already
@@ -395,6 +397,11 @@ export const TEMPLATE = `# NFSU2 settings, read at every launch.
 # Up option, and LAN and online races have no computer opponents.
 # [NFSU2_CATCHUP]
 #catchup = original
+
+# Nitrous: unlimited, twice the push, or both.  Off in Online; in a race between
+# players it counts only when every racer has it on (Mods: NOS Boost).
+# [NFSU2_NOS_MODE]
+#nos_mode = off
 
 # NFS Carbon's transmission whine on your car, as ropi's Underground 2
 # Transmission Whine (github.com/ropi336/UG2WhineGen) has it: a whine rising

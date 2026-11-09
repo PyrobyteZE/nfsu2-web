@@ -45,6 +45,8 @@ static uint32_t g_raw;                         /* grown()'s allocation (its copy
 static int g_have;                             /* the car part database has the seven */
 int fileio_vinyl_packs(void);
 uint32_t modpacks_grow(uint32_t chunk);
+uint32_t paints_grow(uint32_t chunk);
+void paints_free(void);
 
 #define FN_LOADER     0x00636be0u
 #define CHUNK_PARTS   0x80034602u
@@ -191,10 +193,14 @@ int vinylpacks_have(void){ return g_have; }
 static void loader(CPU *c){
     uint32_t chunk = MR32(c->esp + 4u), copy = 0;
     if (guest_ok_bytes(chunk, 16u) && MR32(chunk) == CHUNK_PARTS && guest_ok_bytes(chunk, MR32(chunk + 4u) + 8u)){
-        if (fileio_vinyl_packs() > 0) copy = grown(chunk);
-        uint32_t m = modpacks_grow(copy ? copy : chunk);     /* the mods' parts at its end (runtime/modpacks.c) */
+        uint32_t base = paints_grow(chunk);                  /* this server's paints (runtime/paints.c) */
+        uint32_t from = base ? base : chunk;
+        if (fileio_vinyl_packs() > 0) copy = grown(from);
+        uint32_t m = modpacks_grow(copy ? copy : from);      /* the mods' parts at its end (runtime/modpacks.c) */
         if (m && copy){ gheap_free(1, g_raw); g_raw = 0; }  /* (copied again: the loader keeps that one) */
         if (m) copy = m;
+        if (!copy) copy = base;
+        else if (base) paints_free();
     }
     if (copy) MR32(c->esp + 4u) = copy;
     sub_00636be0(c);

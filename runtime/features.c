@@ -69,6 +69,7 @@ static const struct { const char *name; int (*hook)(CPU *c, uint32_t ip); } k_ho
 };
 
 /* ---- every frame, from the main loop's hook (roam.c) -------------------- */
+void nosmod_frame(CPU *c);
 __attribute__((weak)) void damage_frame(CPU *c);   /* only where damage.c or damage_none.c is linked */
 /* the frame calls that take no CPU */
 static void f_hiddenraces(CPU *c){ (void)c; hiddenraces_frame(); }
@@ -99,6 +100,7 @@ static const struct { const char *name; void (*frame)(CPU *c); } k_frames[] = {
     { "racenet",     racenet_frame },          /* how the other players' cars came in, at a race's end */
     { "optslider",   optslider_frame },        /* our option sliders' copied parts (the pause menu's Horn Volume) */
     { "stance",      stance_frame },           /* the Stance page's look */
+    { "nosmod",      nosmod_frame },           /* the Mods tab's Nitrous setting */
     { "drift",       drift_frame },            /* drift mode in free roam (F2) */
     { "cameras",     cameras_frame },          /* the player's view after a drift event (after drift mode's camera) */
     { "showoff",     showoff_frame },          /* the car's trunk, hood and doors open */

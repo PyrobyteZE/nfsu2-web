@@ -400,6 +400,7 @@ static uint32_t perf_info(uint32_t car){
     uint32_t r = guest_ok(car, 0x14) ? guest_rd32(car + 0x10u) : 0;
     return r && guest_ok(r + 0x10u, PI_PUSH + 0x14u) ? r + 0x10u : 0;
 }
+uint32_t mprace_perf(uint32_t car){ return perf_info(car); }
 static float push_at(uint32_t t, float v){                               /* 0x5764D0 */
     int n = (int)guest_rd32(t); uint32_t vals = guest_rd32(t + 0x10u);
     if (n < 1 || n > 4096 || !guest_ok(vals, 4u * (uint32_t)n)) return 0.f;

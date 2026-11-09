@@ -5825,6 +5825,7 @@ typedef struct { uint32_t id, host, race; float x, y; uint8_t n, max, state, awa
 #define MP_STAGED       0x0080u
 #define MP_PAST         0x0100u
 #define MP_JOIN_STAGE   8             /* ...a JOIN's stage: t_ms >> this & 7 */
+#define MP_JOIN_NOS     0x0800u       /* ...a JOIN: its player has the Nitrous setting on (nosmod.c) */
 #define MP_HSTAGE       9             /* ...an ADVERT's host's stage: t_ms >> this & 7 */
 static struct {
     int      st;
@@ -6036,6 +6037,14 @@ static int mp_outpaced(uint32_t race){
     return cls >= 0 && cls >= MP_OUTPACED_CLS[st] ? (int)st : 0;
 }
 /* one message about lobby l to `to` (0: the hub); the session lock is ours */
+int nosmod_on(void);                           /* nosmod.c */
+void nosmod_race(int ok);
+static uint32_t g_nos_ids[RC_LOBBY_MAX * 4]; static int g_nos_n;   /* the players whose JOIN said they have the Nitrous setting on */
+static void nos_heard(uint32_t id, int on){
+    for (int i = 0; i < g_nos_n; i++) if (g_nos_ids[i] == id){ if (!on) g_nos_ids[i] = g_nos_ids[--g_nos_n]; return; }
+    if (on && g_nos_n < (int)(sizeof g_nos_ids / sizeof g_nos_ids[0])) g_nos_ids[g_nos_n++] = id;
+}
+static int nos_has(uint32_t id){ for (int i = 0; i < g_nos_n; i++) if (g_nos_ids[i] == id) return 1; return 0; }
 static void mp_send_of(const MpLobby *l, uint8_t op, uint8_t arg, uint32_t to){
     rc_lobby m; memset(&m, 0, sizeof m);
     m.op = op; m.arg = arg; m.to = to; m.lobby = l->id; m.race = MR32(l->race + 8u);
@@ -6045,7 +6054,7 @@ static void mp_send_of(const MpLobby *l, uint8_t op, uint8_t arg, uint32_t to){
     if (op == RC_LOBBY_START){ int64_t t = (g_mp.start_at - roam_plat_now_us()) / 1000; m.t_ms = (uint16_t)(t < 0 ? 0 : t > 60000 ? 60000 : t); }
     else if (op == RC_LOBBY_ADVERT) m.t_ms = (uint16_t)(MP_COUNTS_ON | (l->counts & 0x3fu) | (l->priv ? MP_PRIVATE : 0u) |
                                                         (l->staged ? MP_STAGED : 0u) | (l->past ? MP_PAST : 0u) | (l->hstage & 7u) << MP_HSTAGE);
-    else if (op == RC_LOBBY_JOIN) m.t_ms = (uint16_t)(MP_COUNTS_ON | (mp_counts(l->race) ? 1u : 0u) | (rd32(G_CAREER + C_STAGE) & 7u) << MP_JOIN_STAGE);
+    else if (op == RC_LOBBY_JOIN) m.t_ms = (uint16_t)(MP_COUNTS_ON | (mp_counts(l->race) ? 1u : 0u) | (rd32(G_CAREER + C_STAGE) & 7u) << MP_JOIN_STAGE | (nosmod_on() ? MP_JOIN_NOS : 0u));
     memcpy(m.ids, l->ids, sizeof m.ids);
     rc_send_lobby(&g_s, &m);
 }
@@ -6288,6 +6297,7 @@ static void mp_recv(int64_t host, uint32_t from, const rc_lobby *m){
     switch (m->op){
     case RC_LOBBY_ADVERT:
     case RC_LOBBY_START: {
+        if (m->op == RC_LOBBY_START && mp_in_ids(m->ids, m->n, self)) nosmod_race(m->arg == 1);
         if (!r){ rlog("[roam] f=%ld race lobby: %s's race %08x is not in this game's table\n", rh_frame(), mp_name(from), m->race); return; }
         /* Friends & crew only: its host sends it its players and friends and crew-mates alone; one that came to us
          * anyway (a friendship ended since) is none of ours */
@@ -6350,6 +6360,7 @@ static void mp_recv(int64_t host, uint32_t from, const rc_lobby *m){
         return; }
     case RC_LOBBY_JOIN:
         if (g_mp.st != MP_HOST || m->lobby != g_mp.l.id) return;
+        nos_heard(from, (m->t_ms & MP_COUNTS_ON) && (m->t_ms & MP_JOIN_NOS));
         if (mp_in(&g_mp.l, from)){ mp_send_one(RC_LOBBY_ADVERT, 0, from); return; }            /* our answer was lost */
         if (g_mp.l.n >= g_mp.l.max || g_mp.l.state != RC_LS_OPEN){ mp_send_one(RC_LOBBY_LEAVE, RC_LL_FULL, from); return; }
         float jd = 0.f;                                                  /* (how far from the start it asked) */
@@ -6556,8 +6567,11 @@ static void mp_starts(int64_t host, int k){
     int up = mprace_lan_up();
     s.state = up ? RC_LS_RACING : RC_LS_STARTING;
     if (up && !g_mp.host_up){ g_mp.host_up = 1; rlog("[roam] f=%ld race lobby %08x: our LAN server takes logins: the players told\n", rh_frame(), g_mp.l.id); }
+    int nos = nosmod_on();                        /* the Nitrous setting counts in this race when every racer has it on */
+    for (int i = 1; i < g_mp.tn && nos; i++) nos = nos_has(g_mp.tids[i]);
+    nosmod_race(nos);
     roam_plat_lock();
-    for (int j = 0; j < k; j++) for (int i = 1; i < g_mp.tn; i++) if (mp_in(&g_mp.l, g_mp.tids[i])) mp_send_of(&s, RC_LOBBY_START, 0, g_mp.tids[i]);
+    for (int j = 0; j < k; j++) for (int i = 1; i < g_mp.tn; i++) if (mp_in(&g_mp.l, g_mp.tids[i])) mp_send_of(&s, RC_LOBBY_START, nos ? 1u : 0u, g_mp.tids[i]);
     roam_plat_unlock();
     g_mp.up_tx = host;
 }

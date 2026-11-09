@@ -272,6 +272,13 @@ export const MODS: readonly Mod[] = [
     details: 'In a career race the game slows the opponents ahead of you and gives the ones behind more power and grip. Original, the default, keeps that; No boost keeps the waiting, but one behind never beats its own pace; Off drops both, as Quick Race with Catch Up off. Only in your own career races: never in Quick Race, LAN or online races.',
     online: 'career', files: ['runtime/catchup.c'],
   },
+  {
+    id: 'nos-mode', name: 'NOS Boost', authors: [{ name: 'Retrobyte' }], links: {},
+    kind: 'rules', uses: 'original', control: { setting: 'nos_mode', values: ['unlimited', 'faster', 'both'] },
+    line: 'Unlimited or faster nitrous.',
+    details: 'For cars with a nitrous part. Unlimited keeps the shot full, Faster gives it twice the push, Both does both. It works in the career, Quick Race, split screen and free roam. In a race between players it counts only when every racer has it on, and never in Online.',
+    online: 'mine', files: ['runtime/nosmod.c'],
+  },
 ];
 
 /** one of our changes: its name, its key ('': none) and what it does, in one short line */

@@ -1,0 +1,31 @@
+# The Mods tab's Nitrous setting (runtime/nosmod.c) in a new career's first drive: the car's shot (car +0x454) and what is
+# left (+0x45C), in 1/4000 s, before and after the nitrous is held.  With NFSU2_NOS_MODE=unlimited what is left stays the
+# whole shot; with off it goes down.
+#   node web/tools/roam-pair.mjs --solo --data <game folder> --a Nos:nosmod_unlimited.txt:NFSU2_ROAM=0,NFSU2_NOS_MODE=unlimited
+0     tapuntil RETURN MC_Background.fng 120 12000
++120  tap LEFT
++30   tap RETURN
++240  tap BACK
++8    tap BACK
++8    tap BACK
++8    tap BACK
++20   type NOSTEST
++60   tap RETURN
++240  tap RETURN
++0    waitfng GarageMain.fng 3000
++300  tap LEFT
++60   tap RETURN                      # Career
++300  tap RETURN                      # Start New Career
++0    waitfng HUD_SingleRace.fng 12000
++600  tap RETURN                      # past a story dialog, if any
++3000 mark shot i:[[0x8900ac]+4]+0x454
++0    mark left0 i:[[0x8900ac]+4]+0x45c
++0    log NOS BEFORE
++0    down UP
++120  down ALT
++300  up ALT
++0    up UP
++60   mark left1 i:[[0x8900ac]+4]+0x45c
++0    log NOS AFTER
++0    log NOS DONE
++10   quit

@@ -84,6 +84,7 @@ export const MOD_CONTROLS: Record<string, Control> = {
   stance: { t: 'switch' },
   crash_damage: { t: 'switch' },
   catchup: { t: 'seg', opts: [['original', N('Original')], ['noboost', N('No boost')], ['off', N('Off')]] },
+  nos_mode: { t: 'seg', opts: [['off', N('Off')], ['unlimited', 'Unlimited'], ['faster', 'Faster'], ['both', 'Both']] },
   gearbox_whine: { t: 'switch' },
   hq_vinyls: { t: 'switch' },
   // mod_rims: { t: 'switch' },   (the rims: out for now, mods.ts)

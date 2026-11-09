@@ -27,6 +27,8 @@
 #include "widescreen.h"           /* HOOK_SITE */
 #include <stdio.h>
 
+int fileio_resolve_game(const char *win, char *out, size_t outsz);
+
 #define LOCKED_NA       0x007f7c48u   /* 2 car types region 0 does not sell */
 #define AI_CARS_NA      0x007f6da4u   /* region 0's AI car types, a byte each */
 #define AI_CARS_NA_N    26u
@@ -41,6 +43,12 @@ void regional_install(void){
         || MR8(AI_CARS_NA + AI_CARS_NA_N - 2u) != 5u || MR8(AI_CARS_NA + AI_CARS_NA_N - 1u) != 18u
         || MR16(AI_CARS_NA + AI_CARS_NA_N) != 0u){
         fprintf(stderr, "[cars] the exe's region tables are not the ones expected: no Corsa or 106\n");
+        return;
+    }
+    /* not every copy of the game has them: an AI racer given a car with no files hangs the world's load for good */
+    char path[1100];
+    if (!fileio_resolve_game("CARS\\CORSA\\GEOMETRY.BIN", path, sizeof path) || !fileio_resolve_game("CARS\\PEUGOT106\\GEOMETRY.BIN", path, sizeof path)){
+        fprintf(stderr, "[cars] this game folder lacks the Corsa's or the 106's files: no Corsa or 106\n");
         return;
     }
     MR32(LOCKED_NA) = MR32(LOCKED_NA + 4u) = 0xffffffffu;
