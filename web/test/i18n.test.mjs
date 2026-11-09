@@ -22,7 +22,7 @@ test('the texts in use are literals the extraction reads', () => {
   assert.deepEqual(bad, []);
   assert.ok(keys.size > 500, `${keys.size} texts`);
   assert.ok(keys.has('Fan project. Not affiliated with or endorsed by Electronic Arts.'), 'index.html data-i18n');
-  assert.ok(keys.has('Post the log in <0>#bug-reports on our Discord</0>, with what you were doing.'), 'index.html data-i18n-html');
+  assert.ok(keys.has('Mods and their makers: the <0>Mods</0> tab.'), 'index.html data-i18n-html');
   assert.ok(keys.get('{n} laps')?.plural, 'tn()');
 });
 

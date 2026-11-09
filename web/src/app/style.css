@@ -6,17 +6,17 @@
  * Every size and space is a multiple of 4 px. */
 
 :root {
-  --bg: #0d0d0d;
-  --frame: #171717;           /* the header bar and dialogs: the game's dark frame */
-  --panel: #262626;           /* sections: the game's grey panels */
-  --field: #121212;           /* value boxes, inputs, key caps */
-  --line: #3a3a3a;            /* dividers (decoration only) */
-  --edge: #8a8a8a;            /* rims of controls: 4.4:1 on a panel */
-  --text: #ffffff;
-  --muted: #c4c4c4;
-  --lime: #c8f088;            /* sampled from the game's menus */
-  --lime-fill: #404038;       /* the selected item's fill, also sampled */
-  --lime-glow: rgba(200, 240, 136, 0.45);
+  --bg: #080b14;
+  --frame: #101626;           /* the header bar and dialogs: the game's dark frame */
+  --panel: #18203a;           /* sections: the game's grey panels */
+  --field: #0b1020;           /* value boxes, inputs, key caps */
+  --line: #2c3654;            /* dividers (decoration only) */
+  --edge: #7f8db0;            /* rims of controls: 4.4:1 on a panel */
+  --text: #f4f7ff;
+  --muted: #b6c0d9;
+  --lime: #45e0ff;            /* this server's accent */
+  --lime-fill: #173a52;       /* the selected item's fill */
+  --lime-glow: rgba(69, 224, 255, 0.45);
   --bad: #ff8a80;
   --warn: #ffd36e;
 
@@ -32,7 +32,7 @@
 html, body { margin: 0; }
 body {
   min-height: 100vh;
-  background: radial-gradient(1200px 480px at 50% -160px, #2a2a2a, transparent 70%) no-repeat, var(--bg);
+  background: radial-gradient(1200px 480px at 50% -160px, #1b2c55, transparent 70%) no-repeat, var(--bg);
   color: var(--text);
   font: 400 16px/24px var(--font);
   -webkit-font-smoothing: antialiased;
@@ -45,7 +45,7 @@ code { font: 14px/20px var(--mono); }
 
 /* the game's type: bold italic */
 h1, h2, h3, .status, .btn, .play, kbd, .tab, .set-label, .opt, .val, summary, .profiles .name, .problems strong, .hud-fps {
-  font-style: italic; font-weight: 700;
+  font-weight: 700;
 }
 .hint { color: var(--muted); font-size: 14px; line-height: 20px; }
 
@@ -142,7 +142,7 @@ button, .file-btn { cursor: pointer; }
   display: inline-flex; align-items: center; gap: 16px;
   height: 48px; padding: 0 16px 0 24px; border-radius: 8px; font-size: 20px; line-height: 28px;
 }
-.play:hover:not(:disabled) { background: #4c5440; }
+.play:hover:not(:disabled) { background: #1f5270; }
 .play:disabled { border-color: #4a4a4a; background: var(--field); color: var(--edge); box-shadow: none; cursor: not-allowed; }
 .play kbd { border-color: currentColor; background: none; color: inherit; }
 
@@ -1513,3 +1513,13 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.64); }
 .fmbot:hover .fmbot-go { color: #fff; }
 /* /lastfm.html, the Last.fm popup's page, when the browser keeps the window open (lastfm-callback.ts) */
 .lastfm-closed { margin: 24px; }
+
+/* ---------------------------------------------------------------- this server's own look and notice */
+.top { border-radius: 4px; border-left: 4px solid var(--lime); background: linear-gradient(100deg, #15264a, var(--frame) 60%, #2a1238); }
+.brand h1 { text-transform: uppercase; letter-spacing: 1px; }
+.panel { border-radius: 4px; border-top: 2px solid var(--line); }
+.btn, .play, .stat { border-radius: 4px; }
+.notice {
+  grid-column: 1 / -1; order: -1; display: grid; gap: 8px; padding: 16px 24px;  /* under the header on a phone too */
+  background: var(--field); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 4px;
+}
