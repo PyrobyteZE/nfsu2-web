@@ -101,6 +101,7 @@
 #include "roam_plat.h"
 #include "carsfx.h"
 #include "names.h"
+#include "custompaint.h"
 #ifdef __wasm__
 #include "guest_span.h"               /* g_gwin_hi: the guest heap's window (Players' cars shown: Auto's top step) */
 #endif
@@ -198,6 +199,9 @@ static inline uint32_t coop_player(void){ return 0; }
 #define ATTR_WHEELTYPE  0xebb03e66u   /* a wheel's type: the hash of "SPINNER" for a spinner */
 #define ATTR_RIMSIZE    0xce7d8db5u   /* a wheel's size: the car type's +0xDC for one that fits (the shop's list) */
 #define S_SPINNER       0x0079bde0u   /* "SPINNER" */
+#define S_RED           0x00798534u
+#define S_GREEN         0x00798524u
+#define S_BLUE          0x0079852cu
 #define FN_RIDE_SKINS   0x0061c280u   /* thiscall (n): DUMMY_SKIN<n> / WHEEL / SPINNER */
 #define FN_PERF_SET     0x005ac4b0u   /* thiscall RideInfo +0x2F0 (perf*): installed performance parts from bits */
 #define FN_PHYS_UPDATE  0x005b4fc0u   /* thiscall RideInfo +0x10 (1, 1, 1): physics from tuning and parts */
@@ -11111,7 +11115,7 @@ int roam_game_cmd(CPU *c, const char *args, long *wait_start){
         }
         return 1;
     }
-    if (!strcasecmp(sub, "cfgdump") || !strcasecmp(sub, "cfgtest") || !strcasecmp(sub, "parts") || !strcasecmp(sub, "setpart") ||
+    if (!strcasecmp(sub, "cfgdump") || !strcasecmp(sub, "cfgtest") || !strcasecmp(sub, "parts") || !strcasecmp(sub, "setpart") || !strcasecmp(sub, "setcolor") ||
         !strcasecmp(sub, "trunk") || !strcasecmp(sub, "engine") || !strcasecmp(sub, "purge")){
         if (g_njob == NJOB){ rlog("[roam] f=%ld mp %s: busy\n", f, sub); return 1; }
         snprintf(g_job[g_njob++], sizeof g_job[0], "%s", args);
@@ -11278,6 +11282,22 @@ static void run_job(CPU *c, const char *job){
         rlog("[roam] f=%ld mp trunk %d: driver kind %u, layout %s (byte5 %02x), places %d of 12, pieces %d, own models %d, "
              "stand-in boxes %d of 6;%s\n", f, k, rec ? rd32(rec + 4u) : 0u, ln, ok(lay, 6) ? MR8(lay + 5u) : 0u, places, pieces, own,
              boxes, pl);
+        return;
+    }
+    if (!strcasecmp(sub, "setcolor")){
+        /* "mp setcolor SLOT RRGGBB [type]": a paint of any colour (custompaint.c) on the player's ride, by its key */
+        uint32_t slot = (uint32_t)strtoul(a1, 0, 16), rgb = (uint32_t)strtoul(a2, 0, 16), ride = rd32(player_car() + 0x10u);
+        uint32_t key = custompaint_make(*a3 ? atoi(a3) : 0, rgb);
+        uint32_t ag[5] = { ok(ride, 0x8f0) ? MR32(ride) : 0u, slot, key, 0, 0xffffffffu };
+        uint32_t p = rh_call(c, FN_GETCARPART, G_CARPARTDB, 0, 5, ag), p2 = rh_call(c, FN_GETCARPART, G_CARPARTDB, 0, 5, ag);
+        if (!p){ rlog("[roam] f=%ld mp setcolor %x: key %08x: no part\n", f, slot, key); return; }
+        uint32_t st[3] = { S_RED, S_GREEN, S_BLUE }, v[3], ma[2] = { 0x6ba02c05u, 0 }, nm = rh_call(c, FN_PART_NAME, p, 0, 0, 0);
+        for (int i = 0; i < 3; i++){ uint32_t h = rh_call(c, FN_HASH, 0, 0, 1, &st[i]), at[2] = { h, 0 }; v[i] = rh_call(c, FN_PART_ATTR, p, 0, 2, at); }
+        char ns[48] = {0}; if (nm) cstr(nm, ns, sizeof ns);
+        uint32_t a[2] = { slot, p }, old = rh_call(c, FN_RIDE_SETPART, ride, 0, 2, a);
+        g_cfg_next = 0;
+        rlog("[roam] f=%ld mp setcolor %x: key %08x part 0x%08x (again 0x%08x) as %s rgb %u %u %u material %08x, was 0x%08x\n", f, slot, key, p, p2, ns,
+             v[0], v[1], v[2], rh_call(c, FN_PART_ATTR, p, 0, 2, ma), old);
         return;
     }
     if (!strcasecmp(sub, "parts") || !strcasecmp(sub, "setpart")){

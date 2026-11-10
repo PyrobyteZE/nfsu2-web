@@ -1902,9 +1902,11 @@ static void newgetcarpart(CPU *restrict c){
  * brake discs only.  Here the slot keeps its stock part (the answer is not kept: it is this caller's).  The car
  * written back (0x503950: each slot's part's key) then has the stock one's.  Profiles never hold a mod's part
  * (modpacks.c keeps them in MODPARTS.DAT): this is for a record that has one all the same. */
+#include "custompaint.h"
 #define RET_RIDE_PART   0x005038fcu
 void sub_0061b980(CPU *restrict c){
     uint32_t e = c->esp, ret = MR32(e), slot = MR32(e + 8u), key = MR32(e + 12u);
+    if (custompaint_is(slot, key)){ custompaint_get(c); return; }
     newgetcarpart(c);
     if (ret != RET_RIDE_PART || c->eax || !key || slot >= 0xaau) return;
     uint32_t ride = MR32(e + 0x30u);                   /* 0x503880's second argument ([esp+0x18] there) */

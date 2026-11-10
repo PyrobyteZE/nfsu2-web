@@ -1,0 +1,28 @@
+# A paint of any colour (runtime/custompaint.c) in a new career's first drive: ask for colours by key, and read them
+# back through the game's own part functions.  Expect "rgb 128 0 255", the same part both times, and a real paint's name.
+#   node web/tools/roam-pair.mjs --solo --data <game folder> --a Cp:custompaint_engine.txt:NFSU2_ROAM=0
+0     tapuntil RETURN MC_Background.fng 120 12000
++120  tap LEFT
++30   tap RETURN
++240  tap BACK
++8    tap BACK
++8    tap BACK
++8    tap BACK
++20   type CPTEST
++60   tap RETURN
++240  tap RETURN
++0    waitfng GarageMain.fng 3000
++300  tap LEFT
++60   tap RETURN                      # Career
++300  tap RETURN                      # Start New Career
++0    waitfng HUD_SingleRace.fng 12000
++1200 roam mp setcolor 3f 8000ff 0    # body, gloss
++30   roam mp setcolor 3f 12ab34 1    # body, metallic
++30   roam mp setcolor 49 ff8000 2    # rims
++30   roam mp setcolor 46 00ffcc 5    # calipers
++30   roam mp setcolor 47 ff00ff 4    # mufflers
++30   roam mp setcolor 44 c0c000 3    # hoses
++30   roam mp setcolor 4d 3050ff 6    # a vinyl's colour
++30   roam mp setcolor 3f 8000ff 2    # a rim's paint on the body: what happens
++60   log CP DONE
++10   quit

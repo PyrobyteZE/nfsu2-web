@@ -122,6 +122,11 @@ static uint32_t bhash(const char *s){
     for (; *s; s++) h = h * 33u + (uint8_t)*s;
     return h;
 }
+/* custompaint.c: the name of a real paint of list 0 Gloss, 1 Metallic, 2 rims, 3 hoses, 4 mufflers, 5 calipers, 6 vinyls' colours */
+const char *paints_name(int list){
+    static const char *const *const l[7] = { k_gloss, k_metal, k_rim, k_hose, k_muffler, k_caliper, k_vinyl };
+    return l[list][0];
+}
 /* slot i of them all: its part's name, colour and material */
 static void slot(int i, const char **name, int *col, const char **mat){
     if (i < N_COLOUR){ *name = k_gloss[i]; *col = i; *mat = k_colour[i].gloss; }
